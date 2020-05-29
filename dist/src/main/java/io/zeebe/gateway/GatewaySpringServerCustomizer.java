@@ -47,7 +47,7 @@ public class GatewaySpringServerCustomizer
 
   @Configuration
   @AutoConfigureBefore(PrometheusMetricsExportAutoConfiguration.class)
-  public class PrometheusRegistryConfiguration {
+  public static class PrometheusRegistryConfiguration {
 
     @Bean
     @ConditionalOnMissingBean

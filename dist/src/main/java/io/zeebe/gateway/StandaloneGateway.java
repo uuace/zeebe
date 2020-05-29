@@ -37,7 +37,6 @@ public class StandaloneGateway {
   private static final Logger LOG = Loggers.GATEWAY_LOGGER;
   private final AtomixCluster atomixCluster;
   private final Gateway gateway;
-  private final GatewayCfg gatewayCfg;
   private final ActorScheduler actorScheduler;
 
   public StandaloneGateway(
@@ -51,8 +50,6 @@ public class StandaloneGateway {
     springGatewayBridge.registerGatewayStatusSupplier(gateway::getStatus);
     springGatewayBridge.registerClusterStateSupplier(
         () -> gateway.getBrokerClient().getTopologyManager().getTopology());
-
-    this.gatewayCfg = gatewayCfg;
   }
 
   private AtomixCluster createAtomixCluster(final ClusterCfg clusterCfg) {

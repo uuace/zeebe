@@ -14,7 +14,6 @@ import io.atomix.core.Atomix;
 import io.atomix.raft.partition.RaftPartition;
 import io.atomix.raft.partition.RaftPartitionGroup;
 import io.atomix.utils.net.Address;
-import io.prometheus.client.CollectorRegistry;
 import io.zeebe.broker.bootstrap.CloseProcess;
 import io.zeebe.broker.bootstrap.StartProcess;
 import io.zeebe.broker.clustering.atomix.AtomixFactory;
@@ -30,7 +29,6 @@ import io.zeebe.broker.system.configuration.BackpressureCfg;
 import io.zeebe.broker.system.configuration.BrokerCfg;
 import io.zeebe.broker.system.configuration.ClusterCfg;
 import io.zeebe.broker.system.configuration.NetworkCfg;
-import io.zeebe.broker.system.configuration.SocketBindingCfg;
 import io.zeebe.broker.system.management.LeaderManagementRequestHandler;
 import io.zeebe.broker.system.management.deployment.PushDeploymentRequestHandler;
 import io.zeebe.broker.system.monitoring.BrokerHealthCheckService;
@@ -68,8 +66,6 @@ import org.slf4j.Logger;
 public final class Broker implements AutoCloseable {
 
   public static final Logger LOG = Loggers.SYSTEM_LOGGER;
-
-  private static final CollectorRegistry METRICS_REGISTRY = CollectorRegistry.defaultRegistry;
 
   private final SystemContext brokerContext;
   private final List<PartitionListener> partitionListeners;
@@ -283,10 +279,7 @@ public final class Broker implements AutoCloseable {
     partitionListeners.add(healthCheckService);
     scheduleActor(healthCheckService);
 
-    final SocketBindingCfg monitoringApi = networkCfg.getMonitoringApi();
-    return () -> {
-      healthCheckService.close();
-    };
+    return () -> healthCheckService.close();
   }
 
   private AutoCloseable managementRequestStep(final BrokerInfo localBroker) {
