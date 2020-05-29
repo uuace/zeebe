@@ -8,12 +8,16 @@
 package io.zeebe.broker.it.gateway;
 
 import static io.restassured.RestAssured.given;
+import static io.zeebe.client.assertions.TopologyAssert.assertThat;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
+import io.zeebe.client.ZeebeClient;
 import io.zeebe.containers.ZeebeBrokerContainer;
 import io.zeebe.containers.ZeebePort;
 import io.zeebe.containers.ZeebeStandaloneGatewayContainer;
@@ -48,8 +52,10 @@ public class GatewayLivenessProbeIntegrationTest {
     // start both containers
     Stream.of(gateway, broker).parallel().forEach(Startable::start);
 
+    final ZeebeClient zeebeClient = createZeebeClient(gateway);
+
     // wait a little while to give the broker and gateway a chance to find each other
-    Thread.sleep(10000);
+    await().atMost(15, SECONDS).untilAsserted(() -> assertTopologyIsComplete(zeebeClient));
 
     final Integer actuatorPort = gateway.getMappedPort(MONITORING_PORT_IN_CONTAINER);
     final String containerIPAddress = gateway.getContainerIpAddress();
@@ -68,6 +74,11 @@ public class GatewayLivenessProbeIntegrationTest {
 
     // --- shutdown ------------------------------------------
     Stream.of(gateway, broker).parallel().forEach(Startable::stop);
+  }
+
+  private void assertTopologyIsComplete(final ZeebeClient zeebeClient) {
+    final var topology = zeebeClient.newTopologyRequest().send().join();
+    assertThat(topology).isComplete(1, 1);
   }
 
   @Test
@@ -95,5 +106,12 @@ public class GatewayLivenessProbeIntegrationTest {
 
     // --- shutdown ------------------------------------------
     gateway.stop();
+  }
+
+  private static ZeebeClient createZeebeClient(final ZeebeStandaloneGatewayContainer gateway) {
+    return ZeebeClient.newClientBuilder()
+        .brokerContactPoint(gateway.getExternalAddress(ZeebePort.GATEWAY))
+        .usePlaintext()
+        .build();
   }
 }

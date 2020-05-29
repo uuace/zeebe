@@ -36,6 +36,14 @@
 
     <dependency>
       <groupId>io.zeebe</groupId>
+      <artifactId>zeebe-client-java</artifactId>
+      <type>test-jar</type>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.zeebe</groupId>
       <artifactId>zeebe-gateway</artifactId>
     </dependency>
 
@@ -175,6 +183,13 @@
     <dependency>
       <groupId>io.rest-assured</groupId>
       <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>
@@ -189,6 +204,7 @@
         </configuration>
       </plugin>
     </plugins>
+
   </build>
 
   <profiles>
