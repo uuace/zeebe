@@ -18,12 +18,12 @@ import io.zeebe.gateway.impl.broker.BrokerResponseConsumer;
 import io.zeebe.gateway.impl.broker.cluster.BrokerTopologyManager;
 import io.zeebe.gateway.impl.broker.request.BrokerRequest;
 import io.zeebe.gateway.impl.broker.response.BrokerResponse;
-import io.zeebe.util.sched.future.ActorFuture;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public final class StubbedBrokerClient implements BrokerClient {
@@ -41,8 +41,27 @@ public final class StubbedBrokerClient implements BrokerClient {
   public void close() {}
 
   @Override
-  public <T> ActorFuture<BrokerResponse<T>> sendRequest(final BrokerRequest<T> request) {
-    throw new UnsupportedOperationException("not implemented");
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(final BrokerRequest<T> request) {
+    brokerRequests.add(request);
+    try {
+      final RequestHandler requestHandler = requestHandlers.get(request.getClass());
+      final BrokerResponse<T> response = requestHandler.handle(request);
+      return CompletableFuture.completedFuture(response);
+    } catch (final Exception e) {
+      return CompletableFuture.failedFuture(e);
+    }
+  }
+
+  @Override
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
+      final BrokerRequest<T> request, final boolean shouldRetry) {
+    return sendRequest(request);
+  }
+
+  @Override
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
+      final BrokerRequest<T> request, final boolean shouldRetry, final Duration requestTimeout) {
+    return sendRequest(request);
   }
 
   @Override
@@ -70,7 +89,7 @@ public final class StubbedBrokerClient implements BrokerClient {
   }
 
   @Override
-  public <T> ActorFuture<BrokerResponse<T>> sendRequest(
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
       final BrokerRequest<T> request, final Duration requestTimeout) {
     throw new UnsupportedOperationException("not implemented");
   }

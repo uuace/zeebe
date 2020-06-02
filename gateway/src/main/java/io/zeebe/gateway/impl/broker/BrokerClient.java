@@ -10,22 +10,29 @@ package io.zeebe.gateway.impl.broker;
 import io.zeebe.gateway.impl.broker.cluster.BrokerTopologyManager;
 import io.zeebe.gateway.impl.broker.request.BrokerRequest;
 import io.zeebe.gateway.impl.broker.response.BrokerResponse;
-import io.zeebe.util.sched.future.ActorFuture;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public interface BrokerClient extends AutoCloseable {
 
   void close();
 
-  <T> ActorFuture<BrokerResponse<T>> sendRequest(BrokerRequest<T> request);
+  <T> CompletableFuture<BrokerResponse<T>> sendRequest(BrokerRequest<T> request);
+
+  <T> CompletableFuture<BrokerResponse<T>> sendRequest(
+      BrokerRequest<T> request, boolean shouldRetry);
+
+  <T> CompletableFuture<BrokerResponse<T>> sendRequest(
+      BrokerRequest<T> request, boolean shouldRetry, Duration requestTimeout);
 
   <T> void sendRequest(
       BrokerRequest<T> request,
       BrokerResponseConsumer<T> responseConsumer,
       Consumer<Throwable> throwableConsumer);
 
-  <T> ActorFuture<BrokerResponse<T>> sendRequest(BrokerRequest<T> request, Duration requestTimeout);
+  <T> CompletableFuture<BrokerResponse<T>> sendRequest(
+      BrokerRequest<T> request, Duration requestTimeout);
 
   <T> void sendRequest(
       BrokerRequest<T> request,
