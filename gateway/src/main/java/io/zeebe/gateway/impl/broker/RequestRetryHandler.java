@@ -21,7 +21,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class RequestRetryHandler {
+/**
+ * When a requests to a partition fails, request will be retried with a different partition until
+ * all partitions are tried. The request is retried only for specific errors such as connection
+ * errors or resource exhausted errors. The request is not retried for time outs.
+ */
+public final class RequestRetryHandler {
 
   private final BrokerClient brokerClient;
   private final RoundRobinDispatchStrategy roundRobinDispatchStrategy;
@@ -95,23 +100,21 @@ public class RequestRetryHandler {
               (response, error) -> {
                 if (error == null) {
                   responseConsumer.accept(response.getKey(), response.getResponse());
+                } else if (shouldRetryWithNextPartition(error)) {
+                  Loggers.GATEWAY_LOGGER.trace(
+                      "Failed to create workflow on partition {}",
+                      partitionIdIterator.getCurrentPartitionId(),
+                      error);
+                  errors.add(error);
+                  sendRequestWithRetry(
+                      request,
+                      requestSender,
+                      partitionIdIterator,
+                      responseConsumer,
+                      throwableConsumer,
+                      errors);
                 } else {
-                  if (shouldRetryWithNextPartition(error)) {
-                    Loggers.GATEWAY_LOGGER.trace(
-                        "Failed to create workflow on partition {}",
-                        partitionIdIterator.getCurrentPartitionId(),
-                        error);
-                    errors.add(error);
-                    sendRequestWithRetry(
-                        request,
-                        requestSender,
-                        partitionIdIterator,
-                        responseConsumer,
-                        throwableConsumer,
-                        errors);
-                  } else {
-                    throwableConsumer.accept(error);
-                  }
+                  throwableConsumer.accept(error);
                 }
               });
     } else {
@@ -126,9 +129,8 @@ public class RequestRetryHandler {
     if (error instanceof ConnectException) {
       return true;
     } else if (error instanceof BrokerErrorException) {
-      return ((BrokerErrorException) error).getError().getCode()
-              == ErrorCode.PARTITION_LEADER_MISMATCH
-          || ((BrokerErrorException) error).getError().getCode() == ErrorCode.RESOURCE_EXHAUSTED;
+      final ErrorCode code = ((BrokerErrorException) error).getError().getCode();
+      return code == ErrorCode.PARTITION_LEADER_MISMATCH || code == ErrorCode.RESOURCE_EXHAUSTED;
     }
     return false;
   }
