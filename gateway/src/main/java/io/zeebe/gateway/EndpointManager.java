@@ -308,31 +308,10 @@ public final class EndpointManager extends GatewayGrpc.GatewayImplBase {
     }
 
     suppressCancelledException(grpcRequest, streamObserver);
-    brokerClient.sendRequest(
+    brokerClient.sendRequestWithRetry(
         brokerRequest,
         (key, response) -> consumeResponse(responseMapper, streamObserver, key, response),
         error -> streamObserver.onError(convertThrowable(error)));
-  }
-
-  private <GrpcRequestT, BrokerResponseT, GrpcResponseT> void sendRequest(
-      final GrpcRequestT grpcRequest,
-      final Function<GrpcRequestT, BrokerRequest<BrokerResponseT>> requestMapper,
-      final BrokerResponseMapper<BrokerResponseT, GrpcResponseT> responseMapper,
-      final StreamObserver<GrpcResponseT> streamObserver,
-      final Duration timeout) {
-
-    final BrokerRequest<BrokerResponseT> brokerRequest =
-        mapRequest(grpcRequest, requestMapper, streamObserver);
-    if (brokerRequest == null) {
-      return;
-    }
-
-    suppressCancelledException(grpcRequest, streamObserver);
-    brokerClient.sendRequest(
-        brokerRequest,
-        (key, response) -> consumeResponse(responseMapper, streamObserver, key, response),
-        error -> streamObserver.onError(convertThrowable(error)),
-        timeout);
   }
 
   private <GrpcRequestT, BrokerResponseT, GrpcResponseT> void sendRequestWithRetryPartitions(

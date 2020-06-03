@@ -45,7 +45,7 @@ public final class RequestRetryHandler {
       final Consumer<Throwable> throwableConsumer) {
     final Function<
             BrokerRequest<BrokerResponseT>, CompletableFuture<BrokerResponse<BrokerResponseT>>>
-        requestSender = r -> brokerClient.sendRequest(r, false);
+        requestSender = brokerClient::sendRequest;
     sendRequestInternal(request, requestSender, responseConsumer, throwableConsumer);
   }
 
@@ -56,7 +56,7 @@ public final class RequestRetryHandler {
       final Duration requestTimeout) {
     final Function<
             BrokerRequest<BrokerResponseT>, CompletableFuture<BrokerResponse<BrokerResponseT>>>
-        requestSender = r -> brokerClient.sendRequest(r, false, requestTimeout);
+        requestSender = r -> brokerClient.sendRequest(r, requestTimeout);
     sendRequestInternal(request, requestSender, responseConsumer, throwableConsumer);
   }
 

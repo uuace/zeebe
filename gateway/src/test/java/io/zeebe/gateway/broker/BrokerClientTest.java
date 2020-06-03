@@ -120,7 +120,8 @@ public final class BrokerClientTest {
         .errorData("test")
         .register();
 
-    assertThatThrownBy(() -> client.sendRequest(new BrokerCreateWorkflowInstanceRequest()).join())
+    assertThatThrownBy(
+            () -> client.sendRequestWithRetry(new BrokerCreateWorkflowInstanceRequest()).join())
         .hasCauseInstanceOf(BrokerErrorException.class)
         .hasCause(new BrokerErrorException(new BrokerError(ErrorCode.INTERNAL_ERROR, "test")));
 
@@ -149,7 +150,7 @@ public final class BrokerClientTest {
         };
 
     // then
-    assertThatThrownBy(() -> client.sendRequest(request).join())
+    assertThatThrownBy(() -> client.sendRequestWithRetry(request).join())
         .hasCauseInstanceOf(ClientResponseException.class)
         .hasMessageContaining("Catch Me");
   }
@@ -166,7 +167,7 @@ public final class BrokerClientTest {
         .register();
 
     // when
-    final var future = client.sendRequest(new BrokerCreateWorkflowInstanceRequest());
+    final var future = client.sendRequestWithRetry(new BrokerCreateWorkflowInstanceRequest());
 
     // then
     // when the partition is repeatedly not found, the client loops
@@ -190,7 +191,7 @@ public final class BrokerClientTest {
         .register();
 
     // when
-    final var future = client.sendRequest(new BrokerCreateWorkflowInstanceRequest(), false);
+    final var future = client.sendRequest(new BrokerCreateWorkflowInstanceRequest());
 
     // then
     assertThatThrownBy(future::join)
@@ -220,7 +221,7 @@ public final class BrokerClientTest {
     final long key = Protocol.encodePartitionId(1, 123);
     final var request = new BrokerCompleteJobRequest(key, DocumentValue.EMPTY_DOCUMENT);
     request.setPartitionId(1);
-    final var async = client.sendRequest(request, Duration.ofMillis(100));
+    final var async = client.sendRequestWithRetry(request, Duration.ofMillis(100));
 
     // then
     assertThatThrownBy(async::join).hasRootCauseInstanceOf(TimeoutException.class);
@@ -235,7 +236,7 @@ public final class BrokerClientTest {
     request.setLocal(false);
 
     // when
-    final var async = client.sendRequest(request);
+    final var async = client.sendRequestWithRetry(request);
 
     // then
     final String expected =
@@ -252,7 +253,9 @@ public final class BrokerClientTest {
 
     // when
     try {
-      client.sendRequest(new BrokerCompleteJobRequest(1, new UnsafeBuffer(new byte[0]))).join();
+      client
+          .sendRequestWithRetry(new BrokerCompleteJobRequest(1, new UnsafeBuffer(new byte[0])))
+          .join();
 
       fail("should throw exception");
     } catch (final Exception e) {
@@ -273,7 +276,7 @@ public final class BrokerClientTest {
 
     // when
     final var responseFuture =
-        client.sendRequest(
+        client.sendRequestWithRetry(
             new BrokerCompleteJobRequest(
                 Protocol.encodePartitionId(Protocol.DEPLOYMENT_PARTITION, 79),
                 DocumentValue.EMPTY_DOCUMENT));

@@ -42,6 +42,18 @@ public final class StubbedBrokerClient implements BrokerClient {
 
   @Override
   public <T> CompletableFuture<BrokerResponse<T>> sendRequest(final BrokerRequest<T> request) {
+    return sendRequestWithRetry(request);
+  }
+
+  @Override
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
+      final BrokerRequest<T> request, final Duration requestTimeout) {
+    return sendRequestWithRetry(request);
+  }
+
+  @Override
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequestWithRetry(
+      final BrokerRequest<T> request) {
     brokerRequests.add(request);
     try {
       final RequestHandler requestHandler = requestHandlers.get(request.getClass());
@@ -53,19 +65,13 @@ public final class StubbedBrokerClient implements BrokerClient {
   }
 
   @Override
-  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
-      final BrokerRequest<T> request, final boolean shouldRetry) {
-    return sendRequest(request);
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequestWithRetry(
+      final BrokerRequest<T> request, final Duration requestTimeout) {
+    throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
-      final BrokerRequest<T> request, final boolean shouldRetry, final Duration requestTimeout) {
-    return sendRequest(request);
-  }
-
-  @Override
-  public <T> void sendRequest(
+  public <T> void sendRequestWithRetry(
       final BrokerRequest<T> request,
       final BrokerResponseConsumer<T> responseConsumer,
       final Consumer<Throwable> throwableConsumer) {
@@ -86,21 +92,6 @@ public final class StubbedBrokerClient implements BrokerClient {
     } catch (final Exception e) {
       throwableConsumer.accept(new BrokerResponseException(e));
     }
-  }
-
-  @Override
-  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
-      final BrokerRequest<T> request, final Duration requestTimeout) {
-    throw new UnsupportedOperationException("not implemented");
-  }
-
-  @Override
-  public <T> void sendRequest(
-      final BrokerRequest<T> request,
-      final BrokerResponseConsumer<T> responseConsumer,
-      final Consumer<Throwable> throwableConsumer,
-      final Duration requestTimeout) {
-    throw new UnsupportedOperationException("not implemented");
   }
 
   @Override

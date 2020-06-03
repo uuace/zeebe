@@ -73,21 +73,26 @@ public final class BrokerRequestManager extends Actor {
     }
   }
 
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequestWithRetry(
+      final BrokerRequest<T> request) {
+    return sendRequestInternal(request, true, this.requestTimeout);
+  }
+
   public <T> CompletableFuture<BrokerResponse<T>> sendRequest(final BrokerRequest<T> request) {
-    return sendRequest(request, true, this.requestTimeout);
+    return sendRequestInternal(request, false, this.requestTimeout);
   }
 
   public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
-      final BrokerRequest<T> request, final boolean shouldRetry) {
-    return sendRequest(request, shouldRetry, this.requestTimeout);
+      final BrokerRequest<T> request, final Duration timeout) {
+    return sendRequestInternal(request, false, timeout);
   }
 
-  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
+  public <T> CompletableFuture<BrokerResponse<T>> sendRequestWithRetry(
       final BrokerRequest<T> request, final Duration requestTimeout) {
-    return sendRequest(request, true, requestTimeout);
+    return sendRequestInternal(request, true, requestTimeout);
   }
 
-  public <T> CompletableFuture<BrokerResponse<T>> sendRequest(
+  private <T> CompletableFuture<BrokerResponse<T>> sendRequestInternal(
       final BrokerRequest<T> request, final boolean shouldRetry, final Duration requestTimeout) {
     final CompletableFuture<BrokerResponse<T>> responseFuture = new CompletableFuture<>();
     request.serializeValue();

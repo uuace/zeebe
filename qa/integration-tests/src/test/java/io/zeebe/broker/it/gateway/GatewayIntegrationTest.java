@@ -68,7 +68,7 @@ public final class GatewayIntegrationTest {
     final AtomicReference<Throwable> errorResponse = new AtomicReference<>();
 
     // when
-    client.sendRequest(
+    client.sendRequestWithRetry(
         new BrokerCreateWorkflowInstanceRequest(),
         (k, r) -> {},
         error -> {

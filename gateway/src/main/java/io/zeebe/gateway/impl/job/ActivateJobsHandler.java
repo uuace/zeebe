@@ -81,7 +81,7 @@ final class ActivateJobsHandler {
       request.setPartitionId(partitionId);
       request.setMaxJobsToActivate(remainingAmount);
       brokerClient
-          .sendRequest(request, false)
+          .sendRequest(request)
           .whenComplete(
               (response, error) -> {
                 if (error == null) {
