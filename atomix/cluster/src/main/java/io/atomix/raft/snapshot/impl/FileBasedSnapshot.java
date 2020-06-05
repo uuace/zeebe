@@ -103,15 +103,6 @@ public final class FileBasedSnapshot implements PersistedSnapshot {
   }
 
   @Override
-  public int compareTo(final PersistedSnapshot other) {
-    if (other instanceof FileBasedSnapshot) {
-      return getMetadata().compareTo(((FileBasedSnapshot) other).getMetadata());
-    }
-
-    return PersistedSnapshot.super.compareTo(other);
-  }
-
-  @Override
   public int hashCode() {
     return Objects.hash(getDirectory(), getMetadata());
   }

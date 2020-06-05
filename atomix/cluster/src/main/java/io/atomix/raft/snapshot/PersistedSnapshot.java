@@ -20,10 +20,9 @@ package io.atomix.raft.snapshot;
 import io.atomix.utils.time.WallClockTimestamp;
 import io.zeebe.util.CloseableSilently;
 import java.nio.file.Path;
-import java.util.Comparator;
 
 /** Represents a snapshot, which was persisted at the {@link PersistedSnapshotStore}. */
-public interface PersistedSnapshot extends CloseableSilently, Comparable<PersistedSnapshot> {
+public interface PersistedSnapshot extends CloseableSilently {
 
   /**
    * Returns the snapshot timestamp.
@@ -75,15 +74,6 @@ public interface PersistedSnapshot extends CloseableSilently, Comparable<Persist
 
   /** @return a path to the snapshot location */
   Path getPath();
-
-  @Override
-  default int compareTo(final PersistedSnapshot other) {
-    return Comparator.comparingLong(PersistedSnapshot::getIndex)
-        .thenComparingLong(PersistedSnapshot::getTerm)
-        .thenComparing(PersistedSnapshot::getTimestamp)
-        .thenComparing(PersistedSnapshot::getCompactionBound)
-        .compare(this, other);
-  }
 
   /**
    * Returns an implementation specific compaction bound, e.g. a log stream position, a timestamp,

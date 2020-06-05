@@ -94,7 +94,6 @@ public class ReceviedSnapshotTest {
     final var receivedPersistedSnapshot = receivedSnapshot.persist();
 
     // then
-    assertThat(receivedPersistedSnapshot).isEqualByComparingTo(persistedSnapshot);
     // path is different
     assertThat(receivedPersistedSnapshot).isNotEqualTo(persistedSnapshot);
 

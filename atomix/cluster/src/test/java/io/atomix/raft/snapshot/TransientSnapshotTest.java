@@ -241,7 +241,6 @@ public class TransientSnapshotTest {
 
     // then
     assertThat(previousSnapshot.getId()).isLessThan(persistedSnapshot.getId());
-    assertThat(previousSnapshot).isLessThan(persistedSnapshot);
   }
 
   @Test
