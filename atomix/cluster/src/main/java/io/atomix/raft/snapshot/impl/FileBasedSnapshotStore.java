@@ -34,6 +34,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 
@@ -51,6 +52,8 @@ public final class FileBasedSnapshotStore implements PersistedSnapshotStore {
   private final SnapshotMetrics snapshotMetrics;
 
   private final AtomicReference<PersistedSnapshot> currentPersistedSnapshotRef;
+  // used to write concurrently received snapshots in different pending directories
+  private final AtomicLong receivingSnapshotStartCount;
 
   public FileBasedSnapshotStore(
       final SnapshotMetrics snapshotMetrics,
@@ -59,6 +62,7 @@ public final class FileBasedSnapshotStore implements PersistedSnapshotStore {
     this.snapshotsDirectory = snapshotsDirectory;
     this.pendingDirectory = pendingDirectory;
     this.snapshotMetrics = snapshotMetrics;
+    this.receivingSnapshotStartCount = new AtomicLong();
 
     this.listeners = new CopyOnWriteArraySet<>();
 
@@ -119,7 +123,12 @@ public final class FileBasedSnapshotStore implements PersistedSnapshotStore {
                         + snapshotId
                         + "'."));
 
-    final var pendingSnapshotDir = pendingDirectory.resolve(metadata.getSnapshotIdAsString());
+    // to make the pending dir unique
+    final var nextStartCount = receivingSnapshotStartCount.incrementAndGet();
+    final var pendingSnapshotDir =
+        pendingDirectory
+            .resolve(metadata.getSnapshotIdAsString())
+            .resolve(Long.toString(nextStartCount));
     return new FileBasedReceivedSnapshot(metadata, pendingSnapshotDir, this);
   }
 
