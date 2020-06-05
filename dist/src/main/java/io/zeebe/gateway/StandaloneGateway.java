@@ -108,7 +108,7 @@ public class StandaloneGateway {
   }
 
   @SpringBootApplication(exclude = {ElasticsearchRestClientAutoConfiguration.class})
-  @ComponentScan({"io.zeebe.gateway", "io.zeebe.util"})
+  @ComponentScan({"io.zeebe.gateway", "io.zeebe.shared", "io.zeebe.util"})
   public static class Launcher implements CommandLineRunner {
 
     @Autowired GatewayCfg configuration;

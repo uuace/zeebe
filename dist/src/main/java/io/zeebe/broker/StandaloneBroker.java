@@ -9,10 +9,10 @@ package io.zeebe.broker;
 
 import static java.lang.Runtime.getRuntime;
 
-import io.zeebe.EnvironmentHelper;
 import io.zeebe.broker.system.configuration.BrokerCfg;
 import io.zeebe.legacy.tomlconfig.LegacyConfigurationSupport;
 import io.zeebe.legacy.tomlconfig.LegacyConfigurationSupport.Scope;
+import io.zeebe.shared.EnvironmentHelper;
 import io.zeebe.util.FileUtil;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,9 +24,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
 
 @SpringBootApplication(exclude = ElasticsearchRestClientAutoConfiguration.class)
+@ComponentScan({"io.zeebe.broker", "io.zeebe.shared"})
 public class StandaloneBroker implements CommandLineRunner {
 
   @Autowired BrokerCfg configuration;
