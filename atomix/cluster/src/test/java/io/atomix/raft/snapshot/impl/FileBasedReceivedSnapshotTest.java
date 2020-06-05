@@ -333,8 +333,10 @@ public class FileBasedReceivedSnapshotTest {
     assertThat(receiverSnapshotsDir.toFile().listFiles()).isEmpty();
 
     assertThat(receiverPendingSnapshotsDir).exists();
-    final var files = Arrays.stream(receiverPendingSnapshotsDir.toFile().listFiles()).sorted().collect(
-        Collectors.toList());
+    final var files =
+        Arrays.stream(receiverPendingSnapshotsDir.toFile().listFiles())
+            .sorted()
+            .collect(Collectors.toList());
     assertThat(files).isNotNull().hasSize(2);
 
     final var dir = files.get(0);
@@ -343,12 +345,14 @@ public class FileBasedReceivedSnapshotTest {
     final var snapshotFileList = dir.listFiles();
     assertThat(snapshotFileList).isNotNull().extracting(File::getName).containsExactly("file1.txt");
 
-
     final var otherDir = files.get(1);
     assertThat(otherDir).hasName("1-0-123-2");
 
     final var otherSnapshotFileList = dir.listFiles();
-    assertThat(otherSnapshotFileList).isNotNull().extracting(File::getName).containsExactly("file1.txt");
+    assertThat(otherSnapshotFileList)
+        .isNotNull()
+        .extracting(File::getName)
+        .containsExactly("file1.txt");
   }
 
   @Test
@@ -418,8 +422,8 @@ public class FileBasedReceivedSnapshotTest {
     return receiveSnapshot(persistedSnapshot);
   }
 
-  private PersistedSnapshot takeSnapshot(final long index, final long term,
-      final WallClockTimestamp time) {
+  private PersistedSnapshot takeSnapshot(
+      final long index, final long term, final WallClockTimestamp time) {
     final var transientSnapshot = senderSnapshotStore.newTransientSnapshot(index, term, time);
     transientSnapshot.take(this::takeSnapshot);
     return transientSnapshot.persist();

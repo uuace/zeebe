@@ -127,10 +127,9 @@ public final class FileBasedSnapshotStore implements PersistedSnapshotStore {
 
     // to make the pending dir unique
     final var nextStartCount = receivingSnapshotStartCount.incrementAndGet();
-    final var pendingDirectoryName = String.format(RECEIVING_DIR_FORMAT, metadata.getSnapshotIdAsString(), nextStartCount);
-    final var pendingSnapshotDir =
-        pendingDirectory
-            .resolve(pendingDirectoryName);
+    final var pendingDirectoryName =
+        String.format(RECEIVING_DIR_FORMAT, metadata.getSnapshotIdAsString(), nextStartCount);
+    final var pendingSnapshotDir = pendingDirectory.resolve(pendingDirectoryName);
     return new FileBasedReceivedSnapshot(metadata, pendingSnapshotDir, this);
   }
 
