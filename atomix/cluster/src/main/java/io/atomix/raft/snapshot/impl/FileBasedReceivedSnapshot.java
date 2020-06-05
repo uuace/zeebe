@@ -48,6 +48,7 @@ public class FileBasedReceivedSnapshot implements ReceivedSnapshot {
   private ByteBuffer expectedId;
   private final FileBasedSnapshotMetadata metadata;
   private long expectedSnapshotChecksum;
+  private int expectedTotalCount;
 
   FileBasedReceivedSnapshot(
       final FileBasedSnapshotMetadata metadata,
@@ -57,6 +58,7 @@ public class FileBasedReceivedSnapshot implements ReceivedSnapshot {
     this.snapshotStore = snapshotStore;
     this.directory = directory;
     this.expectedSnapshotChecksum = Long.MIN_VALUE;
+    this.expectedTotalCount = Integer.MIN_VALUE;
   }
 
   @Override
@@ -82,15 +84,12 @@ public class FileBasedReceivedSnapshot implements ReceivedSnapshot {
   public boolean apply(final SnapshotChunk snapshotChunk) throws IOException {
     final var currentSnapshotChecksum = snapshotChunk.getSnapshotChecksum();
 
-    if (expectedSnapshotChecksum == Long.MIN_VALUE) {
-      this.expectedSnapshotChecksum = currentSnapshotChecksum;
+    if (isSnapshotChecksumInvalid(currentSnapshotChecksum)) {
+      return FAILED;
     }
 
-    if (expectedSnapshotChecksum != currentSnapshotChecksum) {
-      LOGGER.warn(
-          "Expected snapshot chunk with equal snapshot checksum {}, but got chunk with snapshot checksum {}.",
-          expectedSnapshotChecksum,
-          currentSnapshotChecksum);
+    final var currentTotalCount = snapshotChunk.getTotalCount();
+    if (isTotalCountInvalid(currentTotalCount)) {
       return FAILED;
     }
 
@@ -131,6 +130,36 @@ public class FileBasedReceivedSnapshot implements ReceivedSnapshot {
     return writeReceivedSnapshotChunk(snapshotChunk, snapshotFile);
   }
 
+  private boolean isSnapshotChecksumInvalid(final long currentSnapshotChecksum) {
+    if (expectedSnapshotChecksum == Long.MIN_VALUE) {
+      this.expectedSnapshotChecksum = currentSnapshotChecksum;
+    }
+
+    if (expectedSnapshotChecksum != currentSnapshotChecksum) {
+      LOGGER.warn(
+          "Expected snapshot chunk with equal snapshot checksum {}, but got chunk with snapshot checksum {}.",
+          expectedSnapshotChecksum,
+          currentSnapshotChecksum);
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isTotalCountInvalid(final int currentTotalCount) {
+    if (expectedTotalCount == Integer.MIN_VALUE) {
+      this.expectedTotalCount = currentTotalCount;
+    }
+
+    if (expectedTotalCount != currentTotalCount) {
+      LOGGER.warn(
+          "Expected snapshot chunk with equal snapshot total count {}, but got chunk with total count {}.",
+          expectedTotalCount,
+          currentTotalCount);
+      return true;
+    }
+    return false;
+  }
+
   private boolean writeReceivedSnapshotChunk(
       final SnapshotChunk snapshotChunk, final Path snapshotFile) throws IOException {
     Files.write(snapshotFile, snapshotChunk.getContent(), CREATE_NEW, StandardOpenOption.WRITE);
@@ -152,6 +181,13 @@ public class FileBasedReceivedSnapshot implements ReceivedSnapshot {
 
     final var files = directory.toFile().listFiles();
     Objects.requireNonNull(files, "No chunks have been applied yet");
+
+    if (files.length != expectedTotalCount) {
+      throw new IllegalStateException(
+          String.format(
+              "Expected '%d' chunk files for this snapshot, but found '%d'. Files are: %s.",
+              expectedSnapshotChecksum, files.length, Arrays.toString(files)));
+    }
 
     final var filePaths =
         Arrays.stream(files).sorted().map(File::toPath).collect(Collectors.toList());
