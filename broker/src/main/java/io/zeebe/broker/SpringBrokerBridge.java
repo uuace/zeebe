@@ -27,10 +27,6 @@ public class SpringBrokerBridge {
   }
 
   public Optional<BrokerHealthCheckService> getBrokerHealthCheckService() {
-    if (healthCheckServiceSupplier != null) {
-      return Optional.ofNullable(healthCheckServiceSupplier.get());
-    } else {
-      return Optional.empty();
-    }
+    return Optional.ofNullable(healthCheckServiceSupplier).map(Supplier::get);
   }
 }

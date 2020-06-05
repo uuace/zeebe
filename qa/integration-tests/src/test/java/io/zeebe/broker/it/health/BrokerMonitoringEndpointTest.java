@@ -21,7 +21,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public final class BrokerMonitoirngEndpointTest {
+public final class BrokerMonitoringEndpointTest {
 
   static ZeebeBrokerContainer sutBroker;
 
