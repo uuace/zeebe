@@ -34,6 +34,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -93,7 +95,7 @@ public class FileBasedReceivedSnapshotTest {
     assertThat(files).isNotNull().hasSize(1);
 
     final var dir = files[0];
-    assertThat(dir).hasName("1-0-123");
+    assertThat(dir).hasName("1-0-123-1");
 
     final var snapshotFileList = dir.listFiles();
     assertThat(snapshotFileList).isNotNull().extracting(File::getName).containsExactly("file1.txt");
@@ -105,9 +107,7 @@ public class FileBasedReceivedSnapshotTest {
     final var index = 1L;
     final var term = 0L;
     final var time = WallClockTimestamp.from(123);
-    final var transientSnapshot = senderSnapshotStore.newTransientSnapshot(index, term, time);
-    transientSnapshot.take(this::takeSnapshot);
-    final var persistedSnapshot = transientSnapshot.persist();
+    final PersistedSnapshot persistedSnapshot = takeSnapshot(index, term, time);
 
     final var receivedSnapshot =
         receiverSnapshotStore.newReceivedSnapshot(
@@ -256,10 +256,7 @@ public class FileBasedReceivedSnapshotTest {
     olderTransient.take(this::takeSnapshot);
     final var olderPersistedSnapshot = olderTransient.persist();
 
-    final var newTransient = senderSnapshotStore.newTransientSnapshot(index + 1, term, time);
-    newTransient.take(this::takeSnapshot);
-    final var newPersistedSnapshot = newTransient.persist();
-
+    final PersistedSnapshot newPersistedSnapshot = takeSnapshot(index + 1, term, time);
     receiveSnapshot(newPersistedSnapshot);
 
     // when
@@ -270,7 +267,7 @@ public class FileBasedReceivedSnapshotTest {
     assertThat(pendingSnapshotDirs).isNotNull().hasSize(1);
 
     final var pendingSnapshotDir = pendingSnapshotDirs[0];
-    assertThat(pendingSnapshotDir.getName()).isEqualTo("2-0-123");
+    assertThat(pendingSnapshotDir.getName()).isEqualTo("2-0-123-1");
     assertThat(pendingSnapshotDir.listFiles())
         .isNotNull()
         .extracting(File::getName)
@@ -320,13 +317,112 @@ public class FileBasedReceivedSnapshotTest {
     verify(listener, times(0)).onNewSnapshot(eq(persistedSnapshot));
   }
 
+  @Test
+  public void shouldReceiveConcurrentlyButWriteInDifferentPendingDirs() throws Exception {
+    // given
+    final var index = 1L;
+    final var term = 0L;
+    final var time = WallClockTimestamp.from(123);
+    final var persistedSnapshot = takeSnapshot(index, term, time);
+
+    // when
+    receiveSnapshot(persistedSnapshot);
+    receiveSnapshot(persistedSnapshot);
+
+    // then
+    assertThat(receiverSnapshotsDir.toFile().listFiles()).isEmpty();
+
+    assertThat(receiverPendingSnapshotsDir).exists();
+    final var files = Arrays.stream(receiverPendingSnapshotsDir.toFile().listFiles()).sorted().collect(
+        Collectors.toList());
+    assertThat(files).isNotNull().hasSize(2);
+
+    final var dir = files.get(0);
+    assertThat(dir).hasName("1-0-123-1");
+
+    final var snapshotFileList = dir.listFiles();
+    assertThat(snapshotFileList).isNotNull().extracting(File::getName).containsExactly("file1.txt");
+
+
+    final var otherDir = files.get(1);
+    assertThat(otherDir).hasName("1-0-123-2");
+
+    final var otherSnapshotFileList = dir.listFiles();
+    assertThat(otherSnapshotFileList).isNotNull().extracting(File::getName).containsExactly("file1.txt");
+  }
+
+  @Test
+  public void shouldReceiveConcurrentlyAndPersist() throws Exception {
+    // given
+    final var index = 1L;
+    final var term = 0L;
+    final var time = WallClockTimestamp.from(123);
+    final var persistedSnapshot = takeSnapshot(index, term, time);
+    final var receivedSnapshot = receiveSnapshot(persistedSnapshot);
+    final var otherReceivedSnapshot = receiveSnapshot(persistedSnapshot);
+
+    // when
+    final var receivedPersisted = receivedSnapshot.persist();
+    final var otherReceivedPersisted = otherReceivedSnapshot.persist();
+
+    // then
+    assertThat(receivedPersisted).isEqualTo(otherReceivedPersisted);
+
+    final var snapshotDirs = receiverSnapshotsDir.toFile().listFiles();
+    assertThat(snapshotDirs).isNotNull().hasSize(1);
+
+    final var committedSnapshotDir = snapshotDirs[0];
+    assertThat(committedSnapshotDir.getName()).isEqualTo("1-0-123");
+    assertThat(committedSnapshotDir.listFiles())
+        .isNotNull()
+        .extracting(File::getName)
+        .containsExactly("file1.txt");
+
+    assertThat(receiverPendingSnapshotsDir.toFile().listFiles()).isEmpty();
+  }
+
+  @Test
+  public void shouldReceiveConcurrentlyAndPersistDoesnotDependOnTheOrder() throws Exception {
+    // given
+    final var index = 1L;
+    final var term = 0L;
+    final var time = WallClockTimestamp.from(123);
+    final var persistedSnapshot = takeSnapshot(index, term, time);
+    final var receivedSnapshot = receiveSnapshot(persistedSnapshot);
+    final var otherReceivedSnapshot = receiveSnapshot(persistedSnapshot);
+
+    // when
+    final var otherReceivedPersisted = otherReceivedSnapshot.persist();
+    final var receivedPersisted = receivedSnapshot.persist();
+
+    // then
+    assertThat(receivedPersisted).isEqualTo(otherReceivedPersisted);
+
+    final var snapshotDirs = receiverSnapshotsDir.toFile().listFiles();
+    assertThat(snapshotDirs).isNotNull().hasSize(1);
+
+    final var committedSnapshotDir = snapshotDirs[0];
+    assertThat(committedSnapshotDir.getName()).isEqualTo("1-0-123");
+    assertThat(committedSnapshotDir.listFiles())
+        .isNotNull()
+        .extracting(File::getName)
+        .containsExactly("file1.txt");
+
+    assertThat(receiverPendingSnapshotsDir.toFile().listFiles()).isEmpty();
+  }
+
   private ReceivedSnapshot takeAndReceiveSnapshot(
       final long index, final long term, final WallClockTimestamp time) throws IOException {
-    final var transientSnapshot = senderSnapshotStore.newTransientSnapshot(index, term, time);
-    transientSnapshot.take(this::takeSnapshot);
-    final var persistedSnapshot = transientSnapshot.persist();
+    final PersistedSnapshot persistedSnapshot = takeSnapshot(index, term, time);
 
     return receiveSnapshot(persistedSnapshot);
+  }
+
+  private PersistedSnapshot takeSnapshot(final long index, final long term,
+      final WallClockTimestamp time) {
+    final var transientSnapshot = senderSnapshotStore.newTransientSnapshot(index, term, time);
+    transientSnapshot.take(this::takeSnapshot);
+    return transientSnapshot.persist();
   }
 
   private ReceivedSnapshot receiveSnapshot(final PersistedSnapshot persistedSnapshot)

@@ -39,6 +39,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 
 public final class FileBasedSnapshotStore implements PersistedSnapshotStore {
+  // first is the metadata and the second the the received snapshot count
+  private static final String RECEIVING_DIR_FORMAT = "%s-%d";
 
   private static final Logger LOGGER = new ZbLogger(FileBasedSnapshotStore.class);
 
@@ -125,10 +127,10 @@ public final class FileBasedSnapshotStore implements PersistedSnapshotStore {
 
     // to make the pending dir unique
     final var nextStartCount = receivingSnapshotStartCount.incrementAndGet();
+    final var pendingDirectoryName = String.format(RECEIVING_DIR_FORMAT, metadata.getSnapshotIdAsString(), nextStartCount);
     final var pendingSnapshotDir =
         pendingDirectory
-            .resolve(metadata.getSnapshotIdAsString())
-            .resolve(Long.toString(nextStartCount));
+            .resolve(pendingDirectoryName);
     return new FileBasedReceivedSnapshot(metadata, pendingSnapshotDir, this);
   }
 
