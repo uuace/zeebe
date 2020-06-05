@@ -276,7 +276,7 @@ final class LeaderAppender extends AbstractAppender {
     else if (member.getMember().getType() == RaftMember.Type.ACTIVE
         || member.getMember().getType() == RaftMember.Type.PROMOTABLE
         || member.getMember().getType() == RaftMember.Type.PASSIVE) {
-      replicateSnapshot(member);
+      tryToReplicateSnapshot(member);
     }
     // If no AppendRequest is already being sent, send an AppendRequest.
     else if (member.canAppend()) {
@@ -284,36 +284,24 @@ final class LeaderAppender extends AbstractAppender {
     }
   }
 
-  private void replicateSnapshot(final RaftMemberContext member) {
+  private void tryToReplicateSnapshot(final RaftMemberContext member) {
     final var optSnapshot = raft.getPersistedSnapshotStore().getLatestSnapshot();
 
-    final var canAppend = member.canAppend();
-    if (optSnapshot.isEmpty()) {
-      if (canAppend) {
-        sendAppendRequest(member, buildAppendRequest(member, -1));
+    if (optSnapshot.isPresent()
+        && member.getSnapshotIndex() < optSnapshot.get().getIndex()
+        && optSnapshot.get().getIndex() >= member.getLogReader().getCurrentIndex()) {
+      if (!member.canInstall()) {
+        return;
       }
-      return;
-    }
 
-    final var snapshot = optSnapshot.get();
-    if (member.getSnapshotIndex() >= snapshot.getIndex()) {
-      if (canAppend) {
-        sendAppendRequest(member, buildAppendRequest(member, -1));
-      }
-      return;
-    }
-
-    if (snapshot.getIndex() < member.getLogReader().getCurrentIndex()) {
-      if (canAppend) {
-        sendAppendRequest(member, buildAppendRequest(member, -1));
-      }
-      return;
-    }
-
-    if (member.canInstall()) {
+      final var persistedSnapshot = optSnapshot.get();
       log.debug(
-          "Replicating snapshot {} to {}", snapshot.getIndex(), member.getMember().memberId());
-      sendInstallRequest(member, buildInstallRequest(member, snapshot));
+          "Replicating snapshot {} to {}",
+          persistedSnapshot.getIndex(),
+          member.getMember().memberId());
+      sendInstallRequest(member, buildInstallRequest(member, persistedSnapshot));
+    } else if (member.canAppend()) {
+      sendAppendRequest(member, buildAppendRequest(member, -1));
     }
   }
 
