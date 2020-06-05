@@ -97,7 +97,7 @@ public class FileBasedReceivedSnapshot implements ReceivedSnapshot {
     final String snapshotId = snapshotChunk.getSnapshotId();
     final String chunkName = snapshotChunk.getChunkName();
 
-    if (snapshotStore.exists(snapshotId)) {
+    if (snapshotStore.hasSnapshotId(snapshotId)) {
       LOGGER.debug(
           "Ignore snapshot snapshotChunk {}, because snapshot {} already exists.",
           chunkName,
@@ -145,7 +145,7 @@ public class FileBasedReceivedSnapshot implements ReceivedSnapshot {
 
   @Override
   public PersistedSnapshot persist() {
-    if (snapshotStore.exists(metadata.getSnapshotIdAsString())) {
+    if (snapshotStore.hasSnapshotId(metadata.getSnapshotIdAsString())) {
       abort();
       return snapshotStore.getLatestSnapshot().orElseThrow();
     }

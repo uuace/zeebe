@@ -35,13 +35,14 @@ import java.util.Optional;
 public interface PersistedSnapshotStore extends CloseableSilently {
 
   /**
-   * Returns true if a snapshot with the given identifier exists already, false otherwise.
+   * Returns true if the given identifier is equal to the snapshot id of the current persisted
+   * snapshot, false otherwise.
    *
-   * @param id the snapshot ID to look for
-   * @return true if there is a committed snapshot with this ID, false otherwise
-   * @see SnapshotId
+   * @param id the snapshot Id to look for
+   * @return true if the current snapshot has the equal Id, false otherwise
+   * @see SnapshotId#getSnapshotIdAsString()
    */
-  boolean exists(String id);
+  boolean hasSnapshotId(String id);
 
   /**
    * Starts a new transient snapshot which can be persisted after the snapshot was taken.

@@ -94,7 +94,7 @@ public final class FileBasedSnapshotStore implements PersistedSnapshotStore {
   }
 
   @Override
-  public boolean exists(final String id) {
+  public boolean hasSnapshotId(final String id) {
     final var optLatestSnapshot = getLatestSnapshot();
 
     if (optLatestSnapshot.isPresent()) {

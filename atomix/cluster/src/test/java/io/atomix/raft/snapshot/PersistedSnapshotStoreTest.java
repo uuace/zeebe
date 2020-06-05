@@ -66,7 +66,7 @@ public class PersistedSnapshotStoreTest {
     // given
 
     // when
-    final var exists = persistedSnapshotStore.exists("notexisting");
+    final var exists = persistedSnapshotStore.hasSnapshotId("notexisting");
 
     // then
     assertThat(exists).isFalse();
